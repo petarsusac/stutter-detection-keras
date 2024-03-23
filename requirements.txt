@@ -3,4 +3,4 @@ matplotlib
 librosa
 pandas
 tqdm
-sklearn
+scikit-learn
