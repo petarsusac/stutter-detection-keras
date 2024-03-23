@@ -1,9 +1,6 @@
 BootStrap: docker
 From: tensorflow/tensorflow:2.15.0-gpu
 
-%files
-    requirements.txt
-
 %post
     pip install -r requirements.txt
 
