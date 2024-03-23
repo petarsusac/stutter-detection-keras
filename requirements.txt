@@ -1,2 +1,6 @@
 numpy
 matplotlib
+librosa
+pandas
+tqdm
+sklearn
