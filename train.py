@@ -1,4 +1,3 @@
-from feature_extraction import FeatureExtractor
 from models import CNN
 
 import os
@@ -9,8 +8,6 @@ import keras
 import tensorboard
 import datetime
 
-
-DATASET_PATH = '/storage/home/psusac/'
 LABELS_CSV_FILE = 'SEP-28k_labels_with_path.csv'
 
 TEST_SIZE = 0.2
@@ -44,25 +41,21 @@ def get_labels(df: pd.DataFrame, th=2):
 
 
 # Load dataset csv and modify dataset path
-df = pd.read_csv(LABELS_CSV_FILE).head(256)
-df['Path'] = DATASET_PATH + df['Path'].astype(str)
+df = pd.read_csv(LABELS_CSV_FILE).head(10000)
+# df['Path'] = DATASET_PATH + df['Path'].astype(str)
 
 # Clean up paths which do not exist
 df = df[df['Path'].apply(os.path.exists)]
 
 # Train-test split
-df_train, df_test = train_test_split(df, test_size=0.2)
+df_train, df_test = train_test_split(df, test_size=TEST_SIZE)
 
 # Get training features and labels
-feature_extractor = FeatureExtractor(df_train['Path'])
-X_train = feature_extractor.extract(feature_extractor.mfcc, 'features/mfcc_train.npy')
-
+X_train = np.load('features/mfcc_train.npy')
 Y_train = get_labels(df_train, pos_labels)
 
 # Get validation features and labels
-feature_extractor = FeatureExtractor(df_test['Path'])
-X_test = feature_extractor.extract(feature_extractor.mfcc, 'features/mfcc_train.npy')
-
+X_test = np.load('features/mfcc_test.npy')
 Y_test = get_labels(df_test, pos_labels)
 
 # Build the model
@@ -76,5 +69,5 @@ callbacks = [
     )
 ]
 
-model.fit(X_train, Y_train, validation_data=(X_test, Y_test), batch_size=256, epochs=30, callbacks=callbacks)
+model.fit(X_train, Y_train, validation_data=(X_test, Y_test), batch_size=256, epochs=50, callbacks=callbacks)
 
