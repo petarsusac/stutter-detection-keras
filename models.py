@@ -6,8 +6,8 @@ class Model:
     def __init__(self) -> None:
         pass
 
-    def fit(self, X_train, Y_train, validation_data, batch_size=256, epochs=50) -> keras.callbacks.History:
-        return self.keras_model.fit(X_train, Y_train, validation_data=validation_data, batch_size=batch_size, epochs=epochs)
+    def fit(self, *args, **kwargs) -> keras.callbacks.History:
+        return self.keras_model.fit(*args, **kwargs)
 
 class CNN(Model):
     def __init__(self, output_labels: list, input_shape: tuple = (13, 43)) -> None:
@@ -35,7 +35,7 @@ class CNN(Model):
         self.keras_model.compile(
             optimizer=keras.optimizers.Adam(5e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
-            metrics=[keras.metrics.F1Score(threshold=0.5), keras.metrics.BinaryAccuracy(threshold=0.5)],
+            metrics=[keras.metrics.BinaryAccuracy(threshold=0.5)],
         )
 
     

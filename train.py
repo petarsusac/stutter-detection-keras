@@ -3,9 +3,11 @@ from models import CNN
 
 import os
 import pandas as pd
-import librosa
 import numpy as np
 from sklearn.model_selection import train_test_split
+import keras
+import tensorboard
+import datetime
 
 
 DATASET_PATH = '/storage/home/psusac/'
@@ -67,5 +69,12 @@ Y_test = get_labels(df_test, pos_labels)
 model = CNN(pos_labels)
 
 # Train the model
-model.fit(X_train, Y_train, validation_data=(X_test, Y_test))
+callbacks = [
+    keras.callbacks.TensorBoard(
+        log_dir = 'logs/fit/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
+        histogram_freq = 1,
+    )
+]
+
+model.fit(X_train, Y_train, validation_data=(X_test, Y_test), batch_size=256, epochs=30, callbacks=callbacks)
 
