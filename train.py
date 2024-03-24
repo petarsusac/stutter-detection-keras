@@ -1,26 +1,71 @@
-from feature_extraction import FeatureExtractor, audio_waveform
+from feature_extraction import FeatureExtractor
+from models import CNN
 
+import os
 import pandas as pd
 import librosa
-from matplotlib import pyplot as plt
+import numpy as np
+from sklearn.model_selection import train_test_split
+
 
 DATASET_PATH = '/storage/home/psusac/'
 LABELS_CSV_FILE = 'SEP-28k_labels_with_path.csv'
+
+TEST_SIZE = 0.2
+
 pos_labels=['Prolongation', 'Repetition', 'Block']
 
-df = pd.read_csv(LABELS_CSV_FILE)
+def get_labels(df: pd.DataFrame, th=2):
+    Y = {label: np.zeros(len(df)) for label in pos_labels}
+
+    index = 0
+
+    for _, row in df.iterrows():
+        if row['Prolongation'] >= 2:
+            Y['Prolongation'][index] = 1
+        else:
+            Y['Prolongation'][index] = 0
+
+        if row['Block'] >= 2:
+            Y['Block'][index] = 1
+        else:
+            Y['Block'][index] = 0
+
+        if row['SoundRep'] >= 2 or row['WordRep'] >= 2:
+            Y['Repetition'][index] = 1
+        else:
+            Y['Repetition'][index] = 0
+
+        index += 1
+
+    return Y
+
+
+# Load dataset csv and modify dataset path
+df = pd.read_csv(LABELS_CSV_FILE).head(256)
 df['Path'] = DATASET_PATH + df['Path'].astype(str)
 
-paths = df['Path'].head(5)
+# Clean up paths which do not exist
+df = df[df['Path'].apply(os.path.exists)]
 
-feature_extractor = FeatureExtractor(paths, augmentations=['add_noise', 'shift'])
-mfccs = feature_extractor.extract(feature_extractor.mfcc, 'features/mfcc.npy')
+# Train-test split
+df_train, df_test = train_test_split(df, test_size=0.2)
 
-plt.figure()
-librosa.display.specshow(mfccs[0], sr=8000, x_axis='time')
-plt.savefig('mfcc.png')
+# Get training features and labels
+feature_extractor = FeatureExtractor(df_train['Path'])
+X_train = feature_extractor.extract(feature_extractor.mfcc, 'features/mfcc_train.npy')
 
-plt.figure()
-librosa.display.waveshow(audio_waveform('/storage/home/psusac/clips/HeStutters/0/HeStutters_0_0.wav'), sr=8000, color="blue")
-plt.savefig('wave.png')
+Y_train = get_labels(df_train, pos_labels)
+
+# Get validation features and labels
+feature_extractor = FeatureExtractor(df_test['Path'])
+X_test = feature_extractor.extract(feature_extractor.mfcc, 'features/mfcc_train.npy')
+
+Y_test = get_labels(df_test, pos_labels)
+
+# Build the model
+model = CNN(pos_labels)
+
+# Train the model
+model.fit(X_train, Y_train, validation_data=(X_test, Y_test))
 

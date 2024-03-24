@@ -68,9 +68,8 @@ class FeatureExtractor:
     def extract(self, function: Callable, out_file: str, **kwargs):
         features = []
 
-        for _, path in tqdm(self.paths.items(), position=0, leave=True, total=self.paths.shape[0]):
-            if os.path.exists(path):
-                features.append(function(path, **kwargs))
+        for _, path in tqdm(self.paths.items(), position=0, leave=False, total=self.paths.shape[0]):
+            features.append(function(path, **kwargs))
 
         features = np.array(features)
 
