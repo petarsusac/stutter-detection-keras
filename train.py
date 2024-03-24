@@ -1,4 +1,5 @@
 from models import CNN
+from utils import show_label_distribution
 
 import os
 import pandas as pd
@@ -57,6 +58,12 @@ Y_train = get_labels(df_train, pos_labels)
 # Get validation features and labels
 X_test = np.load('features/mfcc_test.npy')
 Y_test = get_labels(df_test, pos_labels)
+
+# Print label distribution
+print('Train')
+show_label_distribution(Y_train)
+print('Test')
+show_label_distribution(Y_test)
 
 # Build the model
 model = CNN(pos_labels)
