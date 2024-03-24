@@ -1,4 +1,5 @@
-import keras
+import tensorflow as tf
+from tensorflow import keras
 
 class Model:
     keras_model: keras.Model
@@ -8,6 +9,12 @@ class Model:
 
     def fit(self, *args, **kwargs) -> keras.callbacks.History:
         return self.keras_model.fit(*args, **kwargs)
+    
+    def predict_single(self, input):
+        return self.keras_model(tf.constant([input]), training=False)
+    
+    def predict_batch(self, input_array):
+        return self.keras_model.predict(input_array)
 
 class CNN(Model):
     def __init__(self, output_labels: list, input_shape: tuple = (13, 43)) -> None:
