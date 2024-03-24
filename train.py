@@ -13,8 +13,8 @@ df['Path'] = DATASET_PATH + df['Path'].astype(str)
 
 paths = df['Path'].head(5)
 
-feature_extractor = FeatureExtractor(paths)
-mfccs = feature_extractor.mfcc('features/mfcc.npy')
+feature_extractor = FeatureExtractor(paths, augmentations=['add_noise', 'shift'])
+mfccs = feature_extractor.extract(feature_extractor.mfcc, 'features/mfcc.npy')
 
 plt.figure()
 librosa.display.specshow(mfccs[0], sr=8000, x_axis='time')
