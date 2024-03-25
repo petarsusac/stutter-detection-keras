@@ -45,6 +45,25 @@ class CNN(Model):
             metrics=[keras.metrics.BinaryAccuracy(threshold=0.5)],
         )
 
+class GRUNet(Model):
+    def __init__(self, output_labels: list, input_shape: tuple = (92, 40)) -> None:
+        super().__init__()
+        
+        input = keras.Input(shape=(input_shape[0], input_shape[1]))
+        x = keras.layers.Bidirectional(keras.layers.GRU(32, return_sequences=True))(input)
+        x = keras.layers.Bidirectional(keras.layers.GRU(32, return_sequences=True))(x)
+        x = keras.layers.Bidirectional(keras.layers.GRU(32, return_sequences=False))(x)
+        
+        outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
+
+        self.keras_model = keras.Model(inputs=input, outputs=outputs)
+
+        self.keras_model.compile(
+            optimizer=keras.optimizers.Adam(1e-3),
+            loss={label: 'binary_crossentropy' for label in output_labels},
+            metrics=[keras.metrics.BinaryAccuracy(threshold=0.5)],
+        )
+
     
 
 

@@ -1,4 +1,4 @@
-from models import CNN
+from models import CNN, GRUNet
 from utils import show_label_distribution
 from feature_extraction import FeatureExtractor
 
@@ -11,8 +11,8 @@ import tensorboard
 import datetime
 
 LABELS_CSV_FILE = 'SEP-28k_labels_with_path.csv'
-SAMPLES_LIMIT = 10000
-LOAD_FEATURES = True
+SAMPLES_LIMIT = 0
+LOAD_FEATURES = False
 
 TEST_SIZE = 0.2
 
@@ -58,15 +58,28 @@ df_train, df_test = train_test_split(df, test_size=TEST_SIZE)
 
 # Get training and validation features and labels
 if LOAD_FEATURES:
-    X_train = np.load('features/mfcc_train.npy')
-    X_test = np.load('features/mfcc_test.npy')
+    X_train = np.load('features/spec_train.npy')
+    X_test = np.load('features/spec_test.npy')
 else:
     feature_extractor = FeatureExtractor(df_train['Path'])
     print('Generating training set features...')
-    X_train = feature_extractor.extract(feature_extractor.mfcc, 'features/mfcc_train.npy')
+    X_train = feature_extractor.extract(
+        feature_extractor.log_mel_spectrogram, 
+        'features/spec_train.npy',
+        n_fft=512,
+        hop=256,
+        transpose=True
+    )
+
     feature_extractor = FeatureExtractor(df_test['Path'])
     print('Generating validation set features...')
-    X_test = feature_extractor.extract(feature_extractor.mfcc, 'features/mfcc_test.npy')
+    X_test = feature_extractor.extract(
+        feature_extractor.log_mel_spectrogram, 
+        'features/spec_train.npy',
+        n_fft=512,
+        hop=256,
+        transpose=True
+    )
 
 Y_train = get_labels(df_train, pos_labels)
 Y_test = get_labels(df_test, pos_labels)
@@ -77,14 +90,22 @@ for labels in Y_train.values():
 for labels in Y_test.values():
     assert X_test.shape[0] == labels.shape[0]
 
+print('Training set shape:', X_train.shape)
+print('Validation set shape:', X_test.shape)
+
 # Print label distribution
 print('Train')
 show_label_distribution(Y_train)
 print('Test')
 show_label_distribution(Y_test)
 
+input("Waiting to continue...")
+
 # Build the model
-model = CNN(pos_labels)
+model = GRUNet(pos_labels)
+model.keras_model.summary()
+
+input("Waiting to continue...")
 
 # Train the model
 callbacks = [
@@ -94,5 +115,5 @@ callbacks = [
     )
 ]
 
-model.fit(X_train, Y_train, validation_data=(X_test, Y_test), batch_size=256, epochs=50, callbacks=callbacks)
+model.fit(X_train, Y_train, validation_data=(X_test, Y_test), batch_size=256, epochs=40, callbacks=callbacks)
 
