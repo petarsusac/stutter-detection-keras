@@ -4,3 +4,4 @@ features/
 logs/
 out/
 clips/
+tests/output/

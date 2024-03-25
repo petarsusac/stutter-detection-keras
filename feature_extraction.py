@@ -27,7 +27,7 @@ def audio_waveform(file_path, fs=AUDIO_FREQ, max_len=3*AUDIO_FREQ, normalize_wav
 
     if 'pitch_shift' in augmentations:
         shift_steps = np.random.randint(-3, 3)
-        y = librosa.effects.pitch_shift(y, fs, shift_steps)
+        y = librosa.effects.pitch_shift(y, sr=fs, n_steps=shift_steps)
 
     if normalize_wav:
         y = y / np.max(np.abs(y))
@@ -53,10 +53,10 @@ class FeatureExtractor:
 
         return mfcc
 
-    def log_mel_spectrogram(self, file_path, n_mels=40, normalize=True):
+    def log_mel_spectrogram(self, file_path, n_mels=40, n_fft=2048, hop=512, normalize=True):
         y = audio_waveform(file_path, fs=AUDIO_FREQ, augmentations=self.augmentations)
 
-        mel_spec = librosa.feature.melspectrogram(y=y, sr=AUDIO_FREQ, n_mels=n_mels, center=False)
+        mel_spec = librosa.feature.melspectrogram(y=y, sr=AUDIO_FREQ, n_mels=n_mels, n_fft=n_fft, hop_length=hop, center=False)
         log_mel_spec = librosa.power_to_db(mel_spec, ref=np.max, top_db=60)
 
         if normalize:
@@ -65,7 +65,7 @@ class FeatureExtractor:
 
         return log_mel_spec
     
-    def extract(self, function: Callable, out_file: str, **kwargs):
+    def extract(self, function: Callable, out_file: str = '', **kwargs):
         features = []
 
         for _, path in tqdm(self.paths.items(), position=0, leave=False, total=self.paths.shape[0]):
@@ -73,7 +73,8 @@ class FeatureExtractor:
 
         features = np.array(features)
 
-        np.save(out_file, features)
+        if out_file:
+            np.save(out_file, features)
 
         return features
 
