@@ -64,7 +64,7 @@ else:
     feature_extractor = FeatureExtractor(df_train['Path'])
     print('Generating training set features...')
     X_train = feature_extractor.extract(
-        feature_extractor.log_mel_spectrogram, 
+        FeatureExtractor.log_mel_spectrogram, 
         'features/spec_train.npy',
         n_fft=512,
         hop=256,
@@ -74,7 +74,7 @@ else:
     feature_extractor = FeatureExtractor(df_test['Path'])
     print('Generating validation set features...')
     X_test = feature_extractor.extract(
-        feature_extractor.log_mel_spectrogram, 
+        FeatureExtractor.log_mel_spectrogram, 
         'features/spec_train.npy',
         n_fft=512,
         hop=256,
