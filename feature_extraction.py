@@ -51,20 +51,22 @@ class FeatureExtractor:
 
         return mfcc
 
-    def log_mel_spectrogram(file_path, n_mels=40, n_fft=2048, hop=512, normalize=True, transpose=False, augmentations=[]):
+    def mel_spectrogram(file_path, n_mels=40, n_fft=2048, hop=512, normalize=True, log=True, transpose=False, augmentations=[]):
         y = FeatureExtractor.audio_waveform(file_path, fs=AUDIO_FREQ, augmentations=augmentations)
 
         mel_spec = librosa.feature.melspectrogram(y=y, sr=AUDIO_FREQ, n_mels=n_mels, n_fft=n_fft, hop_length=hop, center=False)
-        log_mel_spec = librosa.power_to_db(mel_spec, ref=np.max, top_db=60)
+        
+        if log:
+            mel_spec = librosa.power_to_db(mel_spec, ref=np.max, top_db=60)
 
         if normalize:
-            log_mel_spec = (log_mel_spec - np.min(log_mel_spec)) / (np.max(log_mel_spec) - np.min(log_mel_spec))
-            log_mel_spec = log_mel_spec / np.std(log_mel_spec)
+            mel_spec = (mel_spec - np.min(mel_spec)) / (np.max(mel_spec) - np.min(mel_spec))
+            mel_spec = mel_spec / np.std(mel_spec)
 
         if transpose:
-            log_mel_spec = np.transpose(log_mel_spec)
+            mel_spec = np.transpose(mel_spec)
 
-        return log_mel_spec
+        return mel_spec
     
     def extract(self, function: Callable, out_file: str = '', **kwargs):
         features = []
