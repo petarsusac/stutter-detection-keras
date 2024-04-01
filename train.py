@@ -93,6 +93,12 @@ for labels in Y_test.values():
 print('Training set shape:', X_train.shape)
 print('Validation set shape:', X_test.shape)
 
+# Normalization
+train_mean = np.mean(X_train)
+train_std = np.std(X_train)
+X_train = (X_train - train_mean) / train_std
+X_test = (X_test - train_mean) / train_std
+
 # Print label distribution
 print('Train')
 show_label_distribution(Y_train)
