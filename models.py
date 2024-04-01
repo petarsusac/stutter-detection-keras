@@ -139,4 +139,55 @@ class LSTM(Model):
             metrics=[keras.metrics.BinaryAccuracy(threshold=0.5)],
         )
     
+class ResNetLSTM(Model):
+    def resblock(x, filter_sizes):
+        res_conn = x
+
+        res_conn = keras.layers.Conv2D(filter_sizes[0], kernel_size=(3,3))(res_conn)
+        res_conn = keras.layers.BatchNormalizetion()(res_conn)
+
+        x = keras.layers.Conv2D(filter_sizes[0], kernel_size=(3,3))(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.ReLU()(x)
+
+        x = keras.layers.Conv2D(filter_sizes[1], kernel_size=(3,3))(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.ReLU()(x)
+
+        x = keras.layers.Conv2D(filter_sizes[2], kernel_size=(3,3))(x)
+        x = keras.layers.BatchNormalization()(x)
+
+        x = keras.layers.Add([x, res_conn])
+        
+        x = keras.layers.ReLU()(x)
+
+        return x
+
+
+    def __init__(self, output_labels: list, input_shape: tuple) -> None:
+        super().__init__()
+
+        input = keras.Input(shape=input_shape)
+
+        x = keras.layers.Conv2D(64, kernel_size=(7,7))(input)
+        x = ResNetLSTM.resblock(x, (32, 64, 64))
+        x = ResNetLSTM.resblock(x, (64, 128, 128))
+        x = ResNetLSTM.resblock(x, (128, 128, 128))
+        x = ResNetLSTM.resblock(x, (128, 64, 64))
+        x = ResNetLSTM.resblock(x, (64, 64, 32))
+        x = ResNetLSTM.resblock(x, (32, 16, 16))
+        x = keras.layers.Flatten()(x)
+        x = keras.layers.Bidirectional(keras.layers.LSTM(512, return_sequences=True))(x)
+        x = keras.layers.Bidirectional(keras.layers.LSTM(512))(x)
+
+        outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
+
+        self.keras_model = keras.Model(inputs=input, outputs=outputs)
+
+        self.keras_model.compile(
+            optimizer=keras.optimizers.Adam(1e-4),
+            loss={label: 'binary_crossentropy' for label in output_labels},
+            metrics=[keras.metrics.BinaryAccuracy(threshold=0.5)],
+        )
+
 
