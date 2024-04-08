@@ -15,6 +15,6 @@ def show_label_distribution_single(labels: np.array) -> None:
     negatives = total - positives
     print(f'{positives}/{total} positives - {(positives / total) * 100:.2f}% positives, {(negatives / total) * 100:.2f}% negatives')
 
-def confusion_matrix(y_true, y_pred):
-    y_pred = np.round(y_pred)
+def confusion_matrix(y_true, y_pred, th=0.5):
+    y_pred = (y_pred > th).astype(np.float32)
     return sklearn.metrics.confusion_matrix(y_true, y_pred)
