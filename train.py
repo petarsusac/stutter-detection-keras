@@ -1,5 +1,5 @@
-from models import CNN, GRUNet
-from utils import show_label_distribution
+from models import *
+from utils import *
 from feature_extraction import FeatureExtractor
 
 import os
@@ -7,16 +7,16 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 import keras
-import tensorboard
 import datetime
 
-LABELS_CSV_FILE = 'SEP-28k_labels_with_path.csv'
+LABELS_CSV_FILE = 'SEP-28k_fluencybank_labels_with_path.csv'
 SAMPLES_LIMIT = 0
-LOAD_FEATURES = False
+LOAD_FEATURES = True
+RANDOM_STATE = 42
 
-TEST_SIZE = 0.2
+TEST_SIZE = 0.1
 
-pos_labels=['Prolongation', 'Repetition', 'Block']
+pos_labels=['Block']
 
 def get_labels(df: pd.DataFrame, th=2):
     Y = {label: np.zeros(len(df)) for label in pos_labels}
@@ -24,20 +24,20 @@ def get_labels(df: pd.DataFrame, th=2):
     index = 0
 
     for _, row in df.iterrows():
-        if row['Prolongation'] >= 2:
-            Y['Prolongation'][index] = 1
-        else:
-            Y['Prolongation'][index] = 0
+        # if row['Prolongation'] >= th:
+        #     Y['Prolongation'][index] = 1
 
-        if row['Block'] >= 2:
+        if row['Block'] >= th:
             Y['Block'][index] = 1
-        else:
-            Y['Block'][index] = 0
 
-        if row['SoundRep'] >= 2 or row['WordRep'] >= 2:
-            Y['Repetition'][index] = 1
-        else:
-            Y['Repetition'][index] = 0
+        # if row['SoundRep'] >= th:
+        #     Y['SoundRep'][index] = 1
+
+        # if row['Repetition'] >= th:
+        #     Y['Repetition'][index] = 1
+
+        # if Y['Block'][index] or Y['Prolongation'][index] or Y['Repetition'][index]:
+        #     Y['Any'][index] = 1
 
         index += 1
 
@@ -46,43 +46,54 @@ def get_labels(df: pd.DataFrame, th=2):
 
 # Load dataset csv and modify dataset path
 df = pd.read_csv(LABELS_CSV_FILE)
-# df['Path'] = DATASET_PATH + df['Path'].astype(str)
 
 # Clean up paths which do not exist
 df = df[df['Path'].apply(os.path.exists)]
 if SAMPLES_LIMIT > 0:
     df = df.head(SAMPLES_LIMIT)
 
+# Add 'Repetition' label by combining 'SoundRep' and 'WordRep'
+df['Repetition'] = df[['SoundRep', 'WordRep']].max(axis=1)
+
+# Mark the original samples to avoid augmentation
+df['Augment'] = False
+
 # Train-test split
-df_train, df_test = train_test_split(df, test_size=TEST_SIZE)
+df_train, df_test = train_test_split(df, test_size=TEST_SIZE, random_state=RANDOM_STATE, shuffle=True)
+# df_train = df[df['Show'] != 'FluencyBank']
+# df_test = df[df['Show'] == 'FluencyBank']
+
+# Resampling
+df_train = resample_positives(df_train, 'Block', 2, RANDOM_STATE)
+df_test = resample_negatives(df_test, 'Block', 2, RANDOM_STATE)
 
 # Get training and validation features and labels
 if LOAD_FEATURES:
-    X_train = np.load('features/spec_train.npy')
-    X_test = np.load('features/spec_test.npy')
+    X_train = np.load('features/mfcc_train.npy')
+    X_test = np.load('features/mfcc_test.npy')
 else:
-    feature_extractor = FeatureExtractor(df_train['Path'])
+    feature_extractor = FeatureExtractor(df_train[['Path', 'Augment']])
     print('Generating training set features...')
     X_train = feature_extractor.extract(
-        FeatureExtractor.log_mel_spectrogram, 
-        'features/spec_train.npy',
-        n_fft=512,
-        hop=256,
-        transpose=True
+        FeatureExtractor.mfcc, 
+        'features/mfcc_train.npy',
+        n_fft=800,
+        hop=400,
+        normalize=False,
     )
 
-    feature_extractor = FeatureExtractor(df_test['Path'])
+    feature_extractor = FeatureExtractor(df_test[['Path', 'Augment']])
     print('Generating validation set features...')
     X_test = feature_extractor.extract(
-        FeatureExtractor.log_mel_spectrogram, 
-        'features/spec_train.npy',
-        n_fft=512,
-        hop=256,
-        transpose=True
+        FeatureExtractor.mfcc, 
+        'features/mfcc_test.npy',
+        n_fft=800,
+        hop=400,
+        normalize=False,
     )
 
-Y_train = get_labels(df_train, pos_labels)
-Y_test = get_labels(df_test, pos_labels)
+Y_train = get_labels(df_train, 2)
+Y_test = get_labels(df_test, 2)
 
 # Check if the length of features and labels match
 for labels in Y_train.values():
@@ -105,21 +116,32 @@ show_label_distribution(Y_train)
 print('Test')
 show_label_distribution(Y_test)
 
-input("Waiting to continue...")
-
 # Build the model
-model = GRUNet(pos_labels)
+model = ConvGRU(pos_labels, input_shape=(X_train.shape[1], X_train.shape[2]))
 model.keras_model.summary()
-
-input("Waiting to continue...")
 
 # Train the model
 callbacks = [
     keras.callbacks.TensorBoard(
         log_dir = 'logs/fit/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         histogram_freq = 1,
+    ),
+    keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=10,
+        restore_best_weights=True
     )
 ]
 
-model.fit(X_train, Y_train, validation_data=(X_test, Y_test), batch_size=256, epochs=40, callbacks=callbacks)
+model.fit(X_train, Y_train, 
+          validation_data=(X_test, Y_test), 
+          batch_size=256, 
+          epochs=50, 
+          callbacks=callbacks,
+          verbose=2)
 
+y_pred = model.predict_batch(X_test)
+
+for label in pos_labels:
+    print(f'Confusion matrix ({label}):')
+    print(confusion_matrix(Y_test[label], y_pred[label], th=0.5))
