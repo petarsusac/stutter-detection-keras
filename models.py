@@ -20,18 +20,18 @@ class CNN(Model):
     def __init__(self, output_labels: list, input_shape: tuple = (13, 43)) -> None:
         super().__init__()
 
-        input = keras.Input(shape=(input_shape[0], input_shape[1]))
+        input = keras.Input(shape=input_shape)
 
         x = keras.layers.Reshape((input_shape[0], input_shape[1], 1))(input)
-        x = keras.layers.Conv2D(32, kernel_size=(1,3), activation='relu', padding='same')(x)
-        x = keras.layers.Conv2D(32, kernel_size=(3,1), activation='relu', padding='same')(x)
+        x = keras.layers.Conv2D(32, kernel_size=(3,3), activation='relu', padding='same')(x)
+        x = keras.layers.Conv2D(32, kernel_size=(3,3), activation='relu', padding='same')(x)
         x = keras.layers.MaxPooling2D(pool_size=(2,2))(x)
         x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.Conv2D(32, kernel_size=(3,1), activation='relu', padding='same')(x)
-        x = keras.layers.Conv2D(32, kernel_size=(1,3), activation='relu', padding='same')(x)
+        x = keras.layers.Conv2D(64, kernel_size=(3,3), activation='relu', padding='same')(x)
+        x = keras.layers.Conv2D(64, kernel_size=(3,3), activation='relu', padding='same')(x)
         x = keras.layers.MaxPooling2D(pool_size=(2,2))(x)
         x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.GlobalMaxPooling2D()(x)
+        x = keras.layers.Flatten()(x)
         x = keras.layers.Dense(128, activation='relu')(x)
 
         outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
@@ -39,9 +39,11 @@ class CNN(Model):
         self.keras_model = keras.Model(inputs=input, outputs=outputs)
 
         self.keras_model.compile(
-            optimizer=keras.optimizers.Adam(1e-3),
+            optimizer=keras.optimizers.Adam(5e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
-            metrics=[keras.metrics.BinaryAccuracy(threshold=0.5)],
+            metrics=[keras.metrics.BinaryAccuracy(threshold=0.5),
+                     keras.metrics.Precision(),
+                     keras.metrics.Recall()]
         )
 
 class GRUNet(Model):
@@ -49,6 +51,7 @@ class GRUNet(Model):
         super().__init__()
         
         input = keras.Input(shape=input_shape)
+        x = keras.layers.Permute((2, 1))(input)
 
         x = keras.layers.Reshape((-1, timestep))(input)
 
@@ -116,9 +119,11 @@ class ConvGRU(Model):
         self.keras_model = keras.Model(inputs=input, outputs=outputs)
 
         self.keras_model.compile(
-            optimizer=keras.optimizers.Adam(5e-4),
+            optimizer=keras.optimizers.Adam(1e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
-            metrics=[keras.metrics.F1Score(threshold=0.5)],
+            metrics=[keras.metrics.BinaryAccuracy(threshold=0.5),
+                     keras.metrics.Precision(),
+                     keras.metrics.Recall()],
         )
 
 class LSTM(Model):
@@ -127,37 +132,38 @@ class LSTM(Model):
 
         input = keras.Input(shape=input_shape)
 
-        x = keras.layers.LSTM(64)(input)
-
+        x = keras.layers.LSTM(32, return_sequences=True)(input)
+        x = keras.layers.LSTM(32, return_sequences=False)(x)
+        
         outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
 
         self.keras_model = keras.Model(inputs=input, outputs=outputs)
 
         self.keras_model.compile(
-            optimizer=keras.optimizers.Adam(0.01),
+            optimizer=keras.optimizers.Adam(2e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
-            metrics=[keras.metrics.BinaryAccuracy(threshold=0.5)],
+            metrics=[keras.metrics.BinaryAccuracy(threshold=0.5), keras.metrics.Precision(), keras.metrics.Recall()],
         )
     
 class ResNetLSTM(Model):
     def resblock(x, filter_sizes):
         res_conn = x
 
-        res_conn = keras.layers.Conv2D(filter_sizes[0], kernel_size=(3,3))(res_conn)
-        res_conn = keras.layers.BatchNormalizetion()(res_conn)
+        res_conn = keras.layers.Conv2D(filter_sizes[2], kernel_size=(7,7), padding='same')(res_conn)
+        res_conn = keras.layers.BatchNormalization()(res_conn)
 
-        x = keras.layers.Conv2D(filter_sizes[0], kernel_size=(3,3))(x)
+        x = keras.layers.Conv2D(filter_sizes[0], kernel_size=(3,3), padding='same')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.ReLU()(x)
 
-        x = keras.layers.Conv2D(filter_sizes[1], kernel_size=(3,3))(x)
+        x = keras.layers.Conv2D(filter_sizes[1], kernel_size=(3,3), padding='same')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.ReLU()(x)
 
-        x = keras.layers.Conv2D(filter_sizes[2], kernel_size=(3,3))(x)
+        x = keras.layers.Conv2D(filter_sizes[2], kernel_size=(3,3), padding='same')(x)
         x = keras.layers.BatchNormalization()(x)
 
-        x = keras.layers.Add([x, res_conn])
+        x = keras.layers.Add()([x, res_conn])
         
         x = keras.layers.ReLU()(x)
 
@@ -168,17 +174,18 @@ class ResNetLSTM(Model):
         super().__init__()
 
         input = keras.Input(shape=input_shape)
-
-        x = keras.layers.Conv2D(64, kernel_size=(7,7))(input)
+        x = keras.layers.Reshape((*input_shape, 1))(input)
         x = ResNetLSTM.resblock(x, (32, 64, 64))
         x = ResNetLSTM.resblock(x, (64, 128, 128))
         x = ResNetLSTM.resblock(x, (128, 128, 128))
         x = ResNetLSTM.resblock(x, (128, 64, 64))
         x = ResNetLSTM.resblock(x, (64, 64, 32))
         x = ResNetLSTM.resblock(x, (32, 16, 16))
-        x = keras.layers.Flatten()(x)
+        x = keras.layers.TimeDistributed(keras.layers.Flatten())(x)
         x = keras.layers.Bidirectional(keras.layers.LSTM(512, return_sequences=True))(x)
+        x = keras.layers.Dropout(0.2)(x)
         x = keras.layers.Bidirectional(keras.layers.LSTM(512))(x)
+        x = keras.layers.Dropout(0.4)(x)
 
         outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
 
@@ -190,4 +197,28 @@ class ResNetLSTM(Model):
             metrics=[keras.metrics.BinaryAccuracy(threshold=0.5)],
         )
 
+class ConvLSTM(Model):
+    def __init__(self, output_labels: list, input_shape: tuple) -> None:
+        super().__init__()
 
+        input = keras.Input(shape=input_shape)
+        x = keras.layers.Reshape((*input_shape, 1))(input)
+
+        x = keras.layers.Conv2D(32, kernel_size=(3,3))(x)
+        x = keras.layers.MaxPooling2D(pool_size=(2,2))(x)
+        x = keras.layers.Conv2D(64, kernel_size=(3,3))(x)
+
+        x = keras.layers.Reshape((-1, 64))(x)
+
+        x = keras.layers.LSTM(32, return_sequences=True)(x)
+        x = keras.layers.LSTM(32, return_sequences=False)(x)
+
+        outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
+
+        self.keras_model = keras.Model(inputs=input, outputs=outputs)
+
+        self.keras_model.compile(
+            optimizer=keras.optimizers.Adam(2e-4),
+            loss={label: 'binary_crossentropy' for label in output_labels},
+            metrics=[keras.metrics.BinaryAccuracy(threshold=0.5), keras.metrics.Precision(), keras.metrics.Recall()],
+        )
