@@ -40,7 +40,7 @@ class FeatureExtractor:
 
         return y
 
-    def mfcc(file_path, n_mfcc=13, n_fft=2048, hop=512, normalize=True, augmentations=[]):
+    def mfcc(file_path, n_mfcc=13, n_fft=2048, hop=512, normalize=True, transpose=False, augmentations=[]):
         y = FeatureExtractor.audio_waveform(file_path, fs=AUDIO_FREQ, augmentations=augmentations)
 
         mfcc = librosa.feature.mfcc(y=y, sr=AUDIO_FREQ, n_mfcc=n_mfcc, n_fft=n_fft, hop_length=hop, center=False)
@@ -48,6 +48,9 @@ class FeatureExtractor:
         if normalize:
             mfcc = (mfcc - np.min(mfcc)) / (np.max(mfcc) - np.min(mfcc))
             mfcc = mfcc / np.std(mfcc)
+
+        if transpose:
+            mfcc = np.transpose(mfcc)
 
         return mfcc
 
