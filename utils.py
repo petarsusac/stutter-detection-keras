@@ -1,6 +1,7 @@
 import numpy as np
 import sklearn
 import pandas as pd
+import tensorflow as tf
 
 def show_label_distribution(labels: dict) -> None:
     print('Total samples:', len(next(iter(labels.values()))))
@@ -57,3 +58,8 @@ def resample_positives_augmented_multilabel(df: pd.DataFrame, column_names: list
         df = pd.concat([df_negatives, df_positives_original, df_positives_resampled]).sample(frac=1, random_state=random_state)
     
     return df
+
+def save_model(model, path: str, input_shape: tuple):
+    run_model = tf.function(lambda x: model(x))
+    concrete_func = run_model.get_concrete_function(tf.TensorSpec([1, *input_shape], model.inputs[0].dtype))
+    model.save(path, save_format="tf", signatures=concrete_func)

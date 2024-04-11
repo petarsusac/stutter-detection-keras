@@ -80,6 +80,7 @@ else:
         n_fft=800,
         hop=400,
         normalize=False,
+        transpose=True
     )
 
     feature_extractor = FeatureExtractor(df_test[['Path', 'Augment']])
@@ -90,6 +91,7 @@ else:
         n_fft=800,
         hop=400,
         normalize=False,
+        transpose=True
     )
 
 Y_train = get_labels(df_train, 2)
@@ -117,7 +119,7 @@ print('Test')
 show_label_distribution(Y_test)
 
 # Build the model
-model = ConvGRU(pos_labels, input_shape=(X_train.shape[1], X_train.shape[2]))
+model = ConvLSTM(pos_labels, input_shape=(X_train.shape[1], X_train.shape[2]))
 model.keras_model.summary()
 
 # Train the model
@@ -145,3 +147,5 @@ y_pred = model.predict_batch(X_test)
 for label in pos_labels:
     print(f'Confusion matrix ({label}):')
     print(confusion_matrix(Y_test[label], y_pred[label], th=0.5))
+
+save_model(model.keras_model, 'trained_models/keras/block', X_train.shape[1:])
