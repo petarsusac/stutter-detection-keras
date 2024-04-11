@@ -9,9 +9,9 @@ from typing import Callable, List
 AUDIO_FREQ = 8000
 
 class FeatureExtractor:
-    paths: pd.Series
+    paths: pd.DataFrame
 
-    def __init__(self, paths: pd.Series) -> None:
+    def __init__(self, paths: pd.DataFrame) -> None:
         self.paths = paths
 
     def audio_waveform(file_path, fs=AUDIO_FREQ, max_len=3*AUDIO_FREQ, normalize_wav=True, augmentations=[]):
@@ -68,11 +68,14 @@ class FeatureExtractor:
 
         return mel_spec
     
-    def extract(self, function: Callable, out_file: str = '', **kwargs):
+    def extract(self, function: Callable, out_file: str = '', augmentations=[], **kwargs):
         features = []
 
-        for _, path in tqdm(self.paths.items(), position=0, leave=False, total=self.paths.shape[0]):
-            features.append(function(path, **kwargs))
+        for _, row in tqdm(self.paths.iterrows(), position=0, leave=False, total=self.paths.shape[0]):
+            if row['Augment']:
+                features.append(function(row['Path'], augmentations=augmentations, **kwargs))
+            else:
+                features.append(function(row['Path'], augmentations=[], **kwargs))
 
         features = np.array(features)
 
