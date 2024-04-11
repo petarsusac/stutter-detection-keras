@@ -5,6 +5,7 @@ From: tensorflow/tensorflow:2.15.0-gpu
     requirements.txt
 
 %post
+    apt-get update && apt-get install -y xxd
     pip install -r requirements.txt
 
 %runscript

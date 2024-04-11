@@ -4,3 +4,4 @@ librosa
 pandas
 tqdm
 scikit-learn
+netron
