@@ -11,12 +11,12 @@ import datetime
 
 LABELS_CSV_FILE = 'SEP-28k_fluencybank_labels_with_path.csv'
 SAMPLES_LIMIT = 0
-LOAD_FEATURES = True
+LOAD_FEATURES = False
 RANDOM_STATE = 42
 
 TEST_SIZE = 0.1
 
-pos_labels=['Block']
+pos_labels=['Prolongation']
 
 def get_labels(df: pd.DataFrame, th=2):
     Y = {label: np.zeros(len(df)) for label in pos_labels}
@@ -24,11 +24,11 @@ def get_labels(df: pd.DataFrame, th=2):
     index = 0
 
     for _, row in df.iterrows():
-        # if row['Prolongation'] >= th:
-        #     Y['Prolongation'][index] = 1
+        if row['Prolongation'] >= th:
+            Y['Prolongation'][index] = 1
 
-        if row['Block'] >= th:
-            Y['Block'][index] = 1
+        # if row['Block'] >= th:
+        #     Y['Block'][index] = 1
 
         # if row['SoundRep'] >= th:
         #     Y['SoundRep'][index] = 1
@@ -64,8 +64,8 @@ df_train, df_test = train_test_split(df, test_size=TEST_SIZE, random_state=RANDO
 # df_test = df[df['Show'] == 'FluencyBank']
 
 # Resampling
-df_train = resample_positives(df_train, 'Block', 2, RANDOM_STATE)
-df_test = resample_negatives(df_test, 'Block', 2, RANDOM_STATE)
+df_train = resample_positives(df_train, 'Prolongation', 2, RANDOM_STATE)
+df_test = resample_negatives(df_test, 'Prolongation', 2, RANDOM_STATE)
 
 # Get training and validation features and labels
 if LOAD_FEATURES:
@@ -148,4 +148,4 @@ for label in pos_labels:
     print(f'Confusion matrix ({label}):')
     print(confusion_matrix(Y_test[label], y_pred[label], th=0.5))
 
-save_model(model.keras_model, 'trained_models/keras/block', X_train.shape[1:])
+save_model(model.keras_model, 'trained_models/keras/prolongation', X_train.shape[1:])

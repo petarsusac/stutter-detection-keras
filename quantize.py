@@ -4,10 +4,10 @@ import os
 import subprocess
 import netron
 
-SAVED_MODEL_PATH = 'trained_models/keras/block'
-TFLITE_MODEL_PATH = 'trained_models/tflite/block.tflite'
-CPP_FILE_PATH = 'trained_models/cpp/block.cpp'
-MODEL_NAME = 'model_block'
+SAVED_MODEL_PATH = 'trained_models/keras/prolongation'
+TFLITE_MODEL_PATH = 'trained_models/tflite/prolongation.tflite'
+CPP_FILE_PATH = 'trained_models/cpp/prolongation.cpp'
+MODEL_NAME = 'model_prolongation'
 DATASET_PATH = 'features/mfcc_train.npy'
 
 dataset = np.load(DATASET_PATH)
