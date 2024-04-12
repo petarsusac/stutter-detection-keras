@@ -11,7 +11,7 @@ import datetime
 
 LABELS_CSV_FILE = 'SEP-28k_fluencybank_labels_with_path.csv'
 SAMPLES_LIMIT = 0
-LOAD_FEATURES = False
+LOAD_FEATURES = True
 RANDOM_STATE = 42
 
 TEST_SIZE = 0.1
@@ -109,6 +109,8 @@ print('Validation set shape:', X_test.shape)
 # Normalization
 train_mean = np.mean(X_train)
 train_std = np.std(X_train)
+print('Training set mean:', train_mean)
+print('Training set std:', train_std)
 X_train = (X_train - train_mean) / train_std
 X_test = (X_test - train_mean) / train_std
 
