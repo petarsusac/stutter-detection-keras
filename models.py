@@ -1,25 +1,15 @@
 import tensorflow as tf
 from tensorflow import keras
 
-class Model:
-    keras_model: keras.Model
-
-    def __init__(self) -> None:
-        pass
-
-    def fit(self, *args, **kwargs) -> keras.callbacks.History:
-        return self.keras_model.fit(*args, **kwargs)
+class Model:    
+    def predict_single(keras_model, input):
+        return keras_model(tf.constant([input]), training=False)
     
-    def predict_single(self, input):
-        return self.keras_model(tf.constant([input]), training=False)
-    
-    def predict_batch(self, input_array):
-        return self.keras_model.predict(input_array)
+    def predict_batch(keras_model, input_array):
+        return keras_model.predict(input_array)
 
 class CNN(Model):
-    def __init__(self, output_labels: list, input_shape: tuple = (13, 43)) -> None:
-        super().__init__()
-
+    def create_model(output_labels: list, input_shape: tuple = (13, 43)) -> keras.Model:
         input = keras.Input(shape=input_shape)
 
         x = keras.layers.Reshape((input_shape[0], input_shape[1], 1))(input)
@@ -36,9 +26,9 @@ class CNN(Model):
 
         outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
 
-        self.keras_model = keras.Model(inputs=input, outputs=outputs)
+        keras_model = keras.Model(inputs=input, outputs=outputs)
 
-        self.keras_model.compile(
+        keras_model.compile(
             optimizer=keras.optimizers.Adam(5e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
             metrics=[keras.metrics.BinaryAccuracy(threshold=0.5),
@@ -46,10 +36,10 @@ class CNN(Model):
                      keras.metrics.Recall()]
         )
 
+        return keras_model
+
 class GRUNet(Model):
-    def __init__(self, output_labels: list, input_shape: tuple = (92, 40), timestep=40) -> None:
-        super().__init__()
-        
+    def create_model(output_labels: list, input_shape: tuple = (92, 40), timestep=40) -> keras.Model:
         input = keras.Input(shape=input_shape)
         x = keras.layers.Permute((2, 1))(input)
 
@@ -62,18 +52,18 @@ class GRUNet(Model):
         
         outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
 
-        self.keras_model = keras.Model(inputs=input, outputs=outputs)
+        keras_model = keras.Model(inputs=input, outputs=outputs)
 
-        self.keras_model.compile(
+        keras_model.compile(
             optimizer=keras.optimizers.Adam(5e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
             metrics=[keras.metrics.BinaryAccuracy(threshold=0.5)],
         )
 
-class ConvGRU(Model):
-    def __init__(self, output_labels: list, input_shape: tuple = (40, 92)) -> None:
-        super().__init__()
+        return keras_model
 
+class ConvGRU(Model):
+    def create_model(output_labels: list, input_shape: tuple = (40, 92)) -> keras.Model:
         input = keras.Input(shape=input_shape)
 
         x = keras.layers.Reshape((*input_shape, 1))(input)
@@ -116,9 +106,9 @@ class ConvGRU(Model):
         
         outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
 
-        self.keras_model = keras.Model(inputs=input, outputs=outputs)
+        keras_model = keras.Model(inputs=input, outputs=outputs)
 
-        self.keras_model.compile(
+        keras_model.compile(
             optimizer=keras.optimizers.Adam(1e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
             metrics=[keras.metrics.BinaryAccuracy(threshold=0.5),
@@ -126,10 +116,10 @@ class ConvGRU(Model):
                      keras.metrics.Recall()],
         )
 
-class LSTM(Model):
-    def __init__(self, output_labels: list, input_shape: tuple = (40, 92)) -> None:
-        super().__init__()
+        return keras_model
 
+class LSTM(Model):
+    def create_model(output_labels: list, input_shape: tuple = (40, 92)) -> keras.Model:
         input = keras.Input(shape=input_shape)
 
         x = keras.layers.LSTM(32, return_sequences=True)(input)
@@ -137,13 +127,15 @@ class LSTM(Model):
         
         outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
 
-        self.keras_model = keras.Model(inputs=input, outputs=outputs)
+        keras_model = keras.Model(inputs=input, outputs=outputs)
 
-        self.keras_model.compile(
+        keras_model.compile(
             optimizer=keras.optimizers.Adam(2e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
             metrics=[keras.metrics.BinaryAccuracy(threshold=0.5), keras.metrics.Precision(), keras.metrics.Recall()],
         )
+
+        return keras_model
     
 class ResNetLSTM(Model):
     def resblock(x, filter_sizes):
@@ -170,9 +162,7 @@ class ResNetLSTM(Model):
         return x
 
 
-    def __init__(self, output_labels: list, input_shape: tuple) -> None:
-        super().__init__()
-
+    def create_model(output_labels: list, input_shape: tuple) -> keras.Model:
         input = keras.Input(shape=input_shape)
         x = keras.layers.Reshape((*input_shape, 1))(input)
         x = ResNetLSTM.resblock(x, (32, 64, 64))
@@ -189,18 +179,18 @@ class ResNetLSTM(Model):
 
         outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
 
-        self.keras_model = keras.Model(inputs=input, outputs=outputs)
+        keras_model = keras.Model(inputs=input, outputs=outputs)
 
-        self.keras_model.compile(
+        keras_model.compile(
             optimizer=keras.optimizers.Adam(1e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
             metrics=[keras.metrics.BinaryAccuracy(threshold=0.5)],
         )
 
-class ConvLSTM(Model):
-    def __init__(self, output_labels: list, input_shape: tuple) -> None:
-        super().__init__()
+        return keras_model
 
+class ConvLSTM(Model):
+    def create_model(output_labels: list, input_shape: tuple) -> keras.Model:
         input = keras.Input(shape=input_shape)
         x = keras.layers.Reshape((*input_shape, 1))(input)
         x = keras.layers.Permute((2, 1, 3))(x)
@@ -216,10 +206,12 @@ class ConvLSTM(Model):
 
         outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
 
-        self.keras_model = keras.Model(inputs=input, outputs=outputs)
+        keras_model = keras.Model(inputs=input, outputs=outputs)
 
-        self.keras_model.compile(
+        keras_model.compile(
             optimizer=keras.optimizers.Adam(2e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
             metrics=[keras.metrics.BinaryAccuracy(threshold=0.5), keras.metrics.Precision(), keras.metrics.Recall()],
         )
+
+        return keras_model

@@ -121,8 +121,8 @@ print('Test')
 show_label_distribution(Y_test)
 
 # Build the model
-model = ConvLSTM(pos_labels, input_shape=(X_train.shape[1], X_train.shape[2]))
-model.keras_model.summary()
+model = ConvLSTM.create_model(pos_labels, input_shape=(X_train.shape[1], X_train.shape[2]))
+model.summary()
 
 # Train the model
 callbacks = [
@@ -144,10 +144,10 @@ model.fit(X_train, Y_train,
           callbacks=callbacks,
           verbose=2)
 
-y_pred = model.predict_batch(X_test)
+y_pred = Model.predict_batch(model, X_test)
 
 for label in pos_labels:
     print(f'Confusion matrix ({label}):')
     print(confusion_matrix(Y_test[label], y_pred[label], th=0.5))
 
-save_model(model.keras_model, 'trained_models/keras/repetition', X_train.shape[1:])
+save_model(model, 'trained_models/keras/repetition', X_train.shape[1:])
