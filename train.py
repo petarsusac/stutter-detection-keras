@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 import keras
 import datetime
 
-LABELS_CSV_FILE = 'SEP-28k_fluencybank_labels_with_path.csv'
+LABELS_CSV_FILE = 'csv/SEP-28k_fluencybank_labels_with_path.csv'
 SAMPLES_LIMIT = 0
 LOAD_FEATURES = True
 RANDOM_STATE = 42
