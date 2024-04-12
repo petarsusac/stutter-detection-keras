@@ -203,6 +203,7 @@ class ConvLSTM(Model):
 
         input = keras.Input(shape=input_shape)
         x = keras.layers.Reshape((*input_shape, 1))(input)
+        x = keras.layers.Permute((2, 1, 3))(x)
 
         x = keras.layers.Conv2D(32, kernel_size=(3,3))(x)
         x = keras.layers.MaxPooling2D(pool_size=(2,2))(x)

@@ -77,10 +77,10 @@ else:
     X_train = feature_extractor.extract(
         FeatureExtractor.mfcc, 
         'features/mfcc_train.npy',
-        n_fft=800,
-        hop=400,
+        n_fft=2048,
+        hop=512,
         normalize=False,
-        transpose=True
+        transpose=False
     )
 
     feature_extractor = FeatureExtractor(df_test[['Path', 'Augment']])
@@ -88,10 +88,10 @@ else:
     X_test = feature_extractor.extract(
         FeatureExtractor.mfcc, 
         'features/mfcc_test.npy',
-        n_fft=800,
-        hop=400,
+        n_fft=2048,
+        hop=512,
         normalize=False,
-        transpose=True
+        transpose=False
     )
 
 Y_train = get_labels(df_train, 2)
