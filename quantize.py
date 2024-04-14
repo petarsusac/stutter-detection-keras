@@ -4,16 +4,16 @@ import os
 import subprocess
 import netron
 
-SAVED_MODEL_PATH = 'trained_models/keras/repetition'
-TFLITE_MODEL_PATH = 'trained_models/tflite/repetition.tflite'
-CPP_FILE_PATH = 'trained_models/cpp/repetition.cpp'
-MODEL_NAME = 'model_repetition'
+SAVED_MODEL_PATH = 'trained_models/keras/block'
+TFLITE_MODEL_PATH = 'trained_models/tflite/block.tflite'
+CPP_FILE_PATH = 'trained_models/cpp/block.cpp'
+MODEL_NAME = 'model_block'
 DATASET_PATH = 'features/mfcc_train.npy'
 
-dataset = np.load(DATASET_PATH)
-
 def representative_dataset():
-    LIMIT = 500
+    LIMIT = 1000
+    dataset = np.load(DATASET_PATH)
+    dataset = (dataset - np.mean(dataset)) / np.std(dataset)
     for i in range(LIMIT):
         yield [dataset[i]]
 
