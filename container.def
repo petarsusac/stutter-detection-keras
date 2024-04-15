@@ -1,5 +1,5 @@
 BootStrap: docker
-From: tensorflow/tensorflow:2.16.1-gpu
+From: tensorflow/tensorflow:2.11.1-gpu
 
 %files
     requirements.txt
