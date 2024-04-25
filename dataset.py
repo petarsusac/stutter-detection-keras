@@ -3,11 +3,11 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+from feature_extraction import FeatureExtractor
 from utils import *
 
 LABELS_CSV_FILE = 'csv/SEP-28k_fluencybank_labels_with_path.csv'
 SAMPLES_LIMIT = 0
-LOAD_FEATURES = True
 RANDOM_STATE = 42
 
 TEST_SIZE = 0.1
@@ -82,7 +82,7 @@ def get_labels(df: pd.DataFrame, pos_labels: list, th=2):
 
     return Y
 
-def get_dataset(pos_labels: list):
+def get_dataset(pos_labels: list, load_features: bool):
     # Load dataset csv and modify dataset path
     df = pd.read_csv(LABELS_CSV_FILE)
 
@@ -103,11 +103,11 @@ def get_dataset(pos_labels: list):
     # df_test = df[df['Show'] == 'FluencyBank']
 
     # Resampling
-    df_train = resample_positives(df_train, 'Block', 2, RANDOM_STATE)
-    df_test = resample_negatives(df_test, 'Block', 2, RANDOM_STATE)
+    df_train = resample_positives(df_train, pos_labels[0], 2, RANDOM_STATE)
+    df_test = resample_negatives(df_test, pos_labels[0], 2, RANDOM_STATE)
 
     # Get training and validation features and labels
-    if LOAD_FEATURES:
+    if load_features:
         X_train = np.load('features/mfcc_train.npy')
         X_test = np.load('features/mfcc_test.npy')
     else:
