@@ -190,19 +190,34 @@ class ResNetLSTM(Model):
         return keras_model
 
 class ConvLSTM(Model):
-    def create_model(output_labels: list, input_shape: tuple) -> keras.Model:
+    def create_model(output_labels: list, 
+                    input_shape: tuple, 
+                    num_timesteps=64, 
+                    num_conv_layers=2, 
+                    num_conv_filters=(32, 64), 
+                    kern_size=(5,1),
+                    num_lstm_layers=2,
+                    hidden_layer_neurons=0) -> keras.Model:
+
         input = keras.Input(shape=input_shape)
         x = keras.layers.Reshape((*input_shape, 1))(input)
         x = keras.layers.Permute((2, 1, 3))(x)
 
-        x = keras.layers.Conv2D(32, kernel_size=(3,3))(x)
-        x = keras.layers.MaxPooling2D(pool_size=(2,2))(x)
-        x = keras.layers.Conv2D(64, kernel_size=(3,3))(x)
+        for i in range(num_conv_layers - 1):
+            x = keras.layers.Conv2D(num_conv_filters[i], kernel_size=kern_size)(x)
+            x = keras.layers.MaxPooling2D(pool_size=(2,2))(x)
 
-        x = keras.layers.Reshape((-1, 64))(x)
+        x = keras.layers.Conv2D(num_conv_filters[num_conv_layers-1], kernel_size=kern_size)(x)
 
-        x = keras.layers.LSTM(32, return_sequences=True)(x)
+        x = keras.layers.Reshape((-1, num_timesteps))(x)
+
+        for _ in range(num_lstm_layers-1):
+            x = keras.layers.LSTM(32, return_sequences=True)(x)
+
         x = keras.layers.LSTM(32, return_sequences=False)(x)
+
+        if (hidden_layer_neurons > 0):
+            x = keras.layers.Dense(hidden_layer_neurons, activation='relu')(x)
 
         outputs = {label: keras.layers.Dense(1, activation='sigmoid', name=label)(x) for label in output_labels}
 
@@ -211,7 +226,7 @@ class ConvLSTM(Model):
         keras_model.compile(
             optimizer=keras.optimizers.Adam(2e-4),
             loss={label: 'binary_crossentropy' for label in output_labels},
-            metrics=[keras.metrics.BinaryAccuracy(threshold=0.5), keras.metrics.Precision(), keras.metrics.Recall()],
+            metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()],
         )
 
         return keras_model
