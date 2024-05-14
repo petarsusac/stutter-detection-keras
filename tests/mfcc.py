@@ -16,11 +16,13 @@ AUDIO_FREQ = 8000
 MFCC_PLOT_FILE = 'tests/output/mfcc.png'
 WAV_PLOT_FILE = 'tests/output/wav.png'
 
-df = pd.read_csv('SEP-28k_labels_with_path.csv').head(NUM_SAMPLES)
+df = pd.read_csv('csv/SEP-28k_labels_with_path.csv').head(NUM_SAMPLES)
 
-feature_extractor = FeatureExtractor(df['Path'])
+df['Augment'] = False
 
-mfccs = feature_extractor.extract(feature_extractor.mfcc, n_mfcc=13, n_fft=512, hop=256)
+feature_extractor = FeatureExtractor(df)
+
+mfccs = feature_extractor.extract(FeatureExtractor.mfcc, '', n_mfcc=13, n_fft=2048, hop=512, normalize=False)
 
 print('MFCC array shape: ', mfccs.shape)
 
@@ -32,5 +34,5 @@ librosa.display.waveshow(wave_to_plot, sr=AUDIO_FREQ, color='blue')
 plt.savefig(WAV_PLOT_FILE)
 
 plt.figure()
-librosa.display.specshow(mfcc_to_plot, sr=AUDIO_FREQ, n_fft=512, hop_length=256, x_axis='time')
+librosa.display.specshow(mfcc_to_plot, sr=AUDIO_FREQ, n_fft=2048, hop_length=512, x_axis='time')
 plt.savefig(MFCC_PLOT_FILE)
