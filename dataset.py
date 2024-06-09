@@ -75,8 +75,17 @@ def get_labels(df: pd.DataFrame, pos_labels: list, th=2):
         if 'Repetition' in pos_labels and row['Repetition'] >= th:
             Y['Repetition'][index] = 1
 
-        if 'Any' in pos_labels and (Y['Block'][index] or Y['Prolongation'][index] or Y['Repetition'][index]):
+        if 'Any' in pos_labels and row['Any'] >= th:
             Y['Any'][index] = 1
+
+        if 'Ponavljanje' in pos_labels and row['Ponavljanje'] >= th:
+            Y['Ponavljanje'][index] = 1
+
+        if 'ProduzavanjeGlasova' in pos_labels and row['ProduzavanjeGlasova'] >= th:
+            Y['ProduzavanjeGlasova'][index] = 1
+
+        if 'Blokada' in pos_labels and row['Blokada'] >= th:
+            Y['Blokada'][index] = 1
 
         index += 1
 
@@ -93,6 +102,13 @@ def get_dataset(pos_labels: list, load_features: bool):
 
     # Add 'Repetition' label by combining 'SoundRep' and 'WordRep'
     df['Repetition'] = df[['SoundRep', 'WordRep']].max(axis=1)
+
+    # Add 'Any' label by combining 'Repetition', 'Block' and 'Prolongation'
+    df['Any'] = df[['Repetition', 'Block', 'Prolongation']].max(axis=1)
+
+    # Combine reanottated columns
+    # df['Ponavljanje'] = df[['PonavljanjeGlasova', 'PonavljanjeSlogova', 'PonavljanjeJednosloznihRijeci']].max(axis=1)
+    # df['Blokada'] = df[['Blokada', 'PrekinutaRijec']].max(axis=1)
 
     # Mark the original samples to avoid augmentation
     df['Augment'] = False
